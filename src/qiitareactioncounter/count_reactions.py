@@ -13,8 +13,10 @@ API_URL = "https://qiita.com/api/v2/items"
 
 class Settings(BaseSettings):
     qiita_token: str = Field(..., description="Qiitaのアクセストークン")
-    start_date: str = Field("1900-01-01", description="開始日（YYYY-MM-DD形式）")
-    end_date: str = Field("2099-12-31", description="終了日（YYYY-MM-DD形式）")
+    start_date: str = Field(
+        default="1900-01-01", description="開始日（YYYY-MM-DD形式）"
+    )
+    end_date: str = Field(default="2099-12-31", description="終了日（YYYY-MM-DD形式）")
     username: str | None = Field(default=None, description="ユーザー名（オプション）")
     sample_size: int = Field(
         default=1000, description="サンプル件数（デフォルト1000件）"
