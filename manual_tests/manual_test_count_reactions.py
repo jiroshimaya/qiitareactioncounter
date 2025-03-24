@@ -17,7 +17,6 @@ from qiitareactioncounter.schemas import ReactionCounts
 run_manual_tests = os.getenv("RUN_MANUAL_TESTS") == "1"
 
 
-@pytest.mark.skip
 def test_get_articles():
     """get_articlesのマニュアルテスト
     実際のAPIを呼び出して、記事の取得が正しく行われることを確認します。
@@ -52,7 +51,6 @@ def test_get_articles():
     assert len(articles) <= 10, "取得件数が想定より多いです"
 
 
-@pytest.mark.skip
 def test_run_count_reactions():
     """run_count_reactionsのマニュアルテスト
     実際のAPIを呼び出して、記事の取得と集計が正しく行われることを確認します。
