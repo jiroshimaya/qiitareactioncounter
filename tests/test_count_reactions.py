@@ -79,7 +79,12 @@ def test_collect_articles(mock_get_articles, settings):
 
     # テスト実行
     articles = collect_articles(
-        settings, [1, 2], {"Authorization": "Bearer test_token"}
+        start_date=settings.start_date,
+        end_date=settings.end_date,
+        username=settings.username,
+        sample_size=settings.sample_size,
+        pages_to_fetch=[1, 2],
+        headers={"Authorization": "Bearer test_token"},
     )
 
     # 検証
