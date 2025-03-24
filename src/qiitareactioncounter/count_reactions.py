@@ -123,21 +123,19 @@ def count_reactions(articles: list[QiitaArticle]) -> ReactionCounts:
     return ReactionCounts(**counts)
 
 
-def main():
-    settings = Settings()  # type: ignore
-
-    QIITA_TOKEN = settings.qiita_token
-    if not QIITA_TOKEN:
+def run_count_reactions(settings: Settings) -> str:
+    """リアクション数を集計し、生成されたCSVファイルのパスを返す"""
+    if not settings.qiita_token:
         print("エラー: 環境変数 QIITA_TOKEN が設定されていません")
         sys.exit(1)
 
-    HEADERS = {"Authorization": f"Bearer {QIITA_TOKEN}"}
+    headers = {"Authorization": f"Bearer {settings.qiita_token}"}
 
     query = create_query(settings.start_date, settings.end_date, settings.username)
     print("Query:", query)
 
     # 実際に記事が存在する最後のページを見つける
-    last_valid_page = find_valid_last_page(query, HEADERS)
+    last_valid_page = find_valid_last_page(query, headers)
     if last_valid_page == 0:
         print("指定された期間内に記事が見つかりませんでした。")
         sys.exit(1)
@@ -164,12 +162,18 @@ def main():
         settings.username,
         settings.sample_size,
         pages_to_fetch,
-        HEADERS,
+        headers,
     )
     counts = count_reactions(collected_articles)
     counts.to_csv(settings.output_file)
 
     print(f"{settings.output_file} を保存しました。")
+    return settings.output_file
+
+
+def main():
+    settings = Settings()  # type: ignore
+    run_count_reactions(settings)
 
 
 if __name__ == "__main__":
