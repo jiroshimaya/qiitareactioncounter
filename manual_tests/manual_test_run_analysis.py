@@ -15,7 +15,6 @@ def test_output_dir(tmp_path):
     return str(output_dir)
 
 
-@pytest.mark.skip
 def test_run_analysis(test_output_dir):
     """run_analysisの正常系テスト
 
