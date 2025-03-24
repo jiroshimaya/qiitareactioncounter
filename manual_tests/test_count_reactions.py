@@ -1,3 +1,5 @@
+import os
+import sys
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -11,19 +13,24 @@ from qiitareactioncounter.count_reactions import (
 )
 from qiitareactioncounter.schemas import ReactionCounts
 
+# 環境変数でマニュアルテスト実行を制御
+run_manual_tests = os.getenv("RUN_MANUAL_TESTS") == "1"
 
-@pytest.mark.manual
+
+@pytest.mark.skip
 def test_get_articles():
     """get_articlesのマニュアルテスト
     実際のAPIを呼び出して、記事の取得が正しく行われることを確認します。
     """
     # テスト用の設定
+    qiita_token = os.getenv("QIITA_TOKEN")
+    if not qiita_token:
+        pytest.skip("環境変数 QIITA_TOKEN が設定されていません")
+
     end_date = datetime.now().strftime("%Y-%m-%d")
     start_date = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")  # 過去7日間
     query = create_query(start_date, end_date)
-    headers = {
-        "Authorization": "Bearer your_token"
-    }  # テスト実行時に実際のトークンに置き換えてください
+    headers = {"Authorization": f"Bearer {qiita_token}"}
 
     # 記事の取得
     print(f"クエリ: {query}")
@@ -45,24 +52,20 @@ def test_get_articles():
     assert len(articles) <= 10, "取得件数が想定より多いです"
 
 
-@pytest.mark.manual
+@pytest.mark.skip
 def test_run_count_reactions():
     """run_count_reactionsのマニュアルテスト
     実際のAPIを呼び出して、記事の取得と集計が正しく行われることを確認します。
     """
     # テスト用の設定
-    end_date = datetime.now().strftime("%Y-%m-%d")
-    start_date = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")  # 過去7日間
-    output_file = "test_manual_counts.csv"
+    qiita_token = os.getenv("QIITA_TOKEN")
+    if not qiita_token:
+        pytest.skip("環境変数 QIITA_TOKEN が設定されていません")
 
-    settings = Settings(
-        qiita_token="your_token",  # テスト実行時に実際のトークンに置き換えてください
-        start_date=start_date,
-        end_date=end_date,
-        username=None,  # 全ユーザーの記事を取得
-        sample_size=100,  # テスト用に少なめの件数
-        output_file=output_file,
-    )
+    output_file = "test_manual_counts.csv"
+    sys.argv = ["script.py", "--output_file", output_file, "--sample_size", "100"]
+
+    settings = Settings()  # type: ignore
 
     # 実行
     output_path = run_count_reactions(settings)
