@@ -66,11 +66,11 @@ def find_valid_last_page(query, headers):
     return last_valid_page
 
 
-def create_query(settings: Settings) -> str:
+def create_query(start_date: str, end_date: str, username: str | None = None) -> str:
     """クエリ文字列を生成する"""
-    query = f"created:>={settings.start_date} created:<={settings.end_date}"
-    if settings.username:
-        query = f"{query} user:{settings.username}"
+    query = f"created:>={start_date} created:<={end_date}"
+    if username:
+        query = f"{query} user:{username}"
     return query
 
 
@@ -80,7 +80,7 @@ def collect_articles(
     """指定されたページから記事を収集する"""
     collected_articles = []
     per_page = 100
-    query = create_query(settings)
+    query = create_query(settings.start_date, settings.end_date, settings.username)
 
     for page in pages_to_fetch:
         articles = get_articles(query, page, per_page, headers)
@@ -128,7 +128,7 @@ def main():
 
     HEADERS = {"Authorization": f"Bearer {QIITA_TOKEN}"}
 
-    query = create_query(settings)
+    query = create_query(settings.start_date, settings.end_date, settings.username)
     print("Query:", query)
 
     # 実際に記事が存在する最後のページを見つける
