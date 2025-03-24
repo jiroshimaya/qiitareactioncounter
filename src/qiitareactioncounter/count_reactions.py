@@ -75,26 +75,31 @@ def create_query(start_date: str, end_date: str, username: str | None = None) ->
 
 
 def collect_articles(
-    settings: Settings, pages_to_fetch: list[int], headers: dict
+    start_date: str,
+    end_date: str,
+    username: str | None,
+    sample_size: int,
+    pages_to_fetch: list[int],
+    headers: dict,
 ) -> list[QiitaArticle]:
     """指定されたページから記事を収集する"""
     collected_articles = []
     per_page = 100
-    query = create_query(settings.start_date, settings.end_date, settings.username)
+    query = create_query(start_date, end_date, username)
 
     for page in pages_to_fetch:
         articles = get_articles(query, page, per_page, headers)
         print(f"ページ {page} から {len(articles)} 件取得")
         collected_articles.extend(articles)
-        if len(collected_articles) >= settings.sample_size:
+        if len(collected_articles) >= sample_size:
             break
 
     if len(collected_articles) == 0:
         print("記事が見つかりませんでした。期間やクエリを確認してください。")
         sys.exit(1)
 
-    if len(collected_articles) > settings.sample_size:
-        collected_articles = random.sample(collected_articles, settings.sample_size)
+    if len(collected_articles) > sample_size:
+        collected_articles = random.sample(collected_articles, sample_size)
 
     return collected_articles
 
@@ -153,7 +158,14 @@ def main():
 
     print("ランダムに選んだページ番号:", pages_to_fetch)
 
-    collected_articles = collect_articles(settings, pages_to_fetch, HEADERS)
+    collected_articles = collect_articles(
+        settings.start_date,
+        settings.end_date,
+        settings.username,
+        settings.sample_size,
+        pages_to_fetch,
+        HEADERS,
+    )
     counts = count_reactions(collected_articles)
     counts.to_csv(settings.output_file)
 
