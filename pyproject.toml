@@ -1,0 +1,26 @@
+[project]
+name = "qiitareactioncounter"
+dynamic = ["version"]
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "GitHub Actions", email = "actions@github.com" }
+]
+requires-python = ">=3.11"
+dependencies = [
+    "pandas>=2.2.3",
+    "pydantic-settings>=2.8.1",
+    "requests>=2.32.3",
+]
+
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+source = "vcs"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3.5",
+]
