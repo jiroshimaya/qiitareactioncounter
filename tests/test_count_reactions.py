@@ -33,19 +33,14 @@ def settings():
     )
 
 
-def test_create_query(settings):
-    query = create_query(settings)
+def test_create_query():
+    query = create_query("2024-01-01", "2024-01-31", "test_user")
     expected = "created:>=2024-01-01 created:<=2024-01-31 user:test_user"
     assert query == expected
 
 
 def test_create_query_without_username():
-    settings = Settings(
-        qiita_token="test_token",
-        start_date="2024-01-01",
-        end_date="2024-01-31",
-    )
-    query = create_query(settings)
+    query = create_query("2024-01-01", "2024-01-31")
     expected = "created:>=2024-01-01 created:<=2024-01-31"
     assert query == expected
 
