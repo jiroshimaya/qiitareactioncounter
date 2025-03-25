@@ -29,6 +29,7 @@ class Settings(BaseSettings):
         env_file=".env",
         case_sensitive=False,
         cli_parse_args=True,
+        cli_ignore_unknown_args=True,
         extra="ignore",
     )
 
