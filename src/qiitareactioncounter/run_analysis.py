@@ -5,7 +5,6 @@ from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from qiitareactioncounter.analyze_reactions import analyze_reactions
-from qiitareactioncounter.count_reactions import Settings as CountReactionsSettings
 from qiitareactioncounter.count_reactions import run_count_reactions
 from qiitareactioncounter.schemas import ReactionStats
 
@@ -29,6 +28,7 @@ class Settings(BaseSettings):
         case_sensitive=False,
         cli_parse_args=True,
         extra="ignore",
+        cli_ignore_unknown_args=True,
     )
 
 
@@ -68,14 +68,14 @@ def run_analysis(settings: Settings) -> None:
     # 全ユーザーの集計と分析
     print("全ユーザーのリアクション数を集計します...")
     all_users_csv = output_path / "all_users_reactions.csv"
-    all_users_settings = CountReactionsSettings(
+    run_count_reactions(
         start_date=settings.start_date,
         end_date=settings.end_date,
         qiita_token=settings.qiita_token,
-        output_file=str(all_users_csv),
+        username=None,
         sample_size=settings.sample_size,
+        output_file=str(all_users_csv),
     )
-    run_count_reactions(all_users_settings)
     print(f"全ユーザーの集計結果を保存しました: {all_users_csv}")
 
     print("\n全ユーザーの集計結果を分析します...")
@@ -86,15 +86,14 @@ def run_analysis(settings: Settings) -> None:
     if settings.username:
         print(f"\n{settings.username}のリアクション数を集計します...")
         user_csv = output_path / f"{settings.username}_reactions.csv"
-        user_settings = CountReactionsSettings(
+        run_count_reactions(
             start_date=settings.start_date,
             end_date=settings.end_date,
             qiita_token=settings.qiita_token,
             username=settings.username,
-            output_file=str(user_csv),
             sample_size=settings.sample_size,
+            output_file=str(user_csv),
         )
-        run_count_reactions(user_settings)
         print(f"{settings.username}の集計結果を保存しました: {user_csv}")
 
         print(f"\n{settings.username}の集計結果を分析します...")
