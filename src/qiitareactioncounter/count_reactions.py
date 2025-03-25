@@ -125,7 +125,14 @@ def count_reactions(articles: list[QiitaArticle]) -> ReactionCounts:
     return ReactionCounts(**counts)
 
 
-def run_count_reactions(settings: Settings) -> str:
+def run_count_reactions(settings: Settings | None = None, **kwargs) -> str:
+    # 設定の読み込み
+    if settings is None:
+        settings = Settings(**kwargs)
+    elif kwargs:
+        # 既存の設定をkwargsで上書き
+        settings = Settings(**{**settings.model_dump(), **kwargs})
+
     """リアクション数を集計し、生成されたCSVファイルのパスを返す"""
     if not settings.qiita_token:
         print("エラー: 環境変数 QIITA_TOKEN が設定されていません")
