@@ -126,6 +126,16 @@ def count_reactions(articles: list[QiitaArticle]) -> ReactionCounts:
     return ReactionCounts(**counts)
 
 
+def get_authenticated_user(headers: dict[str, str]) -> str:
+    """認証されているユーザーのIDを取得する"""
+    r: requests.Response = requests.get(
+        "https://qiita.com/api/v2/authenticated_user", headers=headers
+    )
+    if r.status_code != 200:
+        raise Exception(f"認証に失敗しました: {r.text}")
+    return r.json()["id"]
+
+
 def run_count_reactions(settings: Settings | None = None, **kwargs) -> str:
     # 設定の読み込み
     if settings is None:

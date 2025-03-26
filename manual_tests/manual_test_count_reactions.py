@@ -4,17 +4,16 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 import pytest
+import requests
 
 from qiitareactioncounter.count_reactions import (
     Settings,
     create_query,
     get_articles,
+    get_authenticated_user,
     run_count_reactions,
 )
 from qiitareactioncounter.schemas import ReactionCounts
-
-# 環境変数でマニュアルテスト実行を制御
-run_manual_tests = os.getenv("RUN_MANUAL_TESTS") == "1"
 
 
 def test_get_articles():
@@ -80,3 +79,36 @@ def test_run_count_reactions():
 
     # テスト用のファイルを削除
     Path(output_path).unlink()
+
+
+def test_get_authenticated_user():
+    """get_authenticated_userのマニュアルテスト
+    実際のAPIを呼び出して、認証ユーザーの情報が正しく取得できることを確認します。
+
+    実行例:
+        QIITA_USERID=shimajiroxyz uv run pytest manual_tests/manual_test_count_reactions.py -v -k test_get_authenticated_user
+    """
+    # テスト用の設定
+    qiita_token = os.getenv("QIITA_TOKEN")
+    if not qiita_token:
+        pytest.skip("環境変数 QIITA_TOKEN が設定されていません")
+
+    qiita_userid = os.getenv("QIITA_USERID")
+    if not qiita_userid:
+        pytest.skip("環境変数 QIITA_USERID が設定されていません")
+
+    headers = {"Authorization": f"Bearer {qiita_token}"}
+
+    # 認証ユーザー情報の取得
+    userid = get_authenticated_user(headers)
+
+    # 結果の表示
+    print(f"\n取得したユーザーID: {userid}")
+    print(f"環境変数のユーザーID: {qiita_userid}")
+
+    # APIレスポンスの内容を確認
+    r = requests.get("https://qiita.com/api/v2/authenticated_user", headers=headers)
+    print(f"\nAPIレスポンス: {r.json()}")
+
+    # 検証
+    assert userid == qiita_userid, "取得したユーザーIDが環境変数と一致しません"
