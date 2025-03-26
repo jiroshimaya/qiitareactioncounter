@@ -4,7 +4,7 @@ dynamic = ["version"]
 description = "Add your description here"
 readme = "README.md"
 authors = [
-    { name = "GitHub Actions", email = "actions@github.com" }
+    { name = "shimajiroxyz" }
 ]
 requires-python = ">=3.11"
 dependencies = [
@@ -22,7 +22,10 @@ source = "vcs"
 
 [dependency-groups]
 dev = [
+    "autodoc-pydantic>=2.2.0",
     "pytest>=8.3.5",
+    "sphinx>=8.2.3",
+    "sphinx-rtd-theme>=3.0.2",
     "taskipy>=1.14.1",
 ]
 
@@ -33,3 +36,5 @@ act-sample = "act -j publish -W .github/workflows/publish-to-testpypi.yaml -e te
 test = "pytest"
 lint = "uvx ruff check ."
 format = "uvx ruff format ."
+docs-generate = "sphinx-apidoc -f -o docs/source src/qiitareactioncounter && sphinx-build -M clean docs/source docs/build && sphinx-build -M html docs/source docs/build"
+docs-open = "open docs/build/html/index.html"
