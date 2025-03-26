@@ -15,7 +15,7 @@ class Settings(BaseSettings):
         default="1900-01-01", description="開始日（YYYY-MM-DD形式）"
     )
     end_date: str = Field(default="2099-12-31", description="終了日（YYYY-MM-DD形式）")
-    username: str | None = Field(default=None, description="ユーザー名（オプション）")
+    userid: str | None = Field(default=None, description="ユーザーID（オプション）")
     sample_size: int = Field(
         default=1000, description="サンプル件数（デフォルト1000件）"
     )
@@ -72,7 +72,7 @@ def run_analysis(settings: Settings) -> None:
         start_date=settings.start_date,
         end_date=settings.end_date,
         qiita_token=settings.qiita_token,
-        username=None,
+        userid=None,
         sample_size=settings.sample_size,
         output_file=str(all_users_csv),
     )
@@ -82,22 +82,22 @@ def run_analysis(settings: Settings) -> None:
     all_users_analysis = output_path / "all_users_analysis_result.json"
     run_analyze_reactions(str(all_users_csv), str(all_users_analysis))
 
-    # 特定ユーザーの集計と分析（usernameが指定されている場合）
-    if settings.username:
-        print(f"\n{settings.username}のリアクション数を集計します...")
-        user_csv = output_path / f"{settings.username}_reactions.csv"
+    # 特定ユーザーの集計と分析（useridが指定されている場合）
+    if settings.userid:
+        print(f"\n{settings.userid}のリアクション数を集計します...")
+        user_csv = output_path / f"{settings.userid}_reactions.csv"
         run_count_reactions(
             start_date=settings.start_date,
             end_date=settings.end_date,
             qiita_token=settings.qiita_token,
-            username=settings.username,
+            userid=settings.userid,
             sample_size=settings.sample_size,
             output_file=str(user_csv),
         )
-        print(f"{settings.username}の集計結果を保存しました: {user_csv}")
+        print(f"{settings.userid}の集計結果を保存しました: {user_csv}")
 
-        print(f"\n{settings.username}の集計結果を分析します...")
-        user_analysis = output_path / f"{settings.username}_analysis_result.json"
+        print(f"\n{settings.userid}の集計結果を分析します...")
+        user_analysis = output_path / f"{settings.userid}_analysis_result.json"
         run_analyze_reactions(str(user_csv), str(user_analysis))
 
 
