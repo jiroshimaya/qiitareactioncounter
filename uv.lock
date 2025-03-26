@@ -474,7 +474,7 @@ wheels = [
 
 [[package]]
 name = "qiitareactioncounter"
-version = "0.0.2.dev28+g7e0f0e1.d20250326"
+version = "0.0.3.dev0+g8d07421.d20250326"
 source = { editable = "." }
 dependencies = [
     { name = "pandas" },

@@ -1,3 +1,14 @@
+"""Qiitaのリアクション数集計・分析で使用するデータモデル
+
+このモジュールは、Qiitaの記事データとリアクション数の集計・分析結果を表すデータモデルを提供します。
+主な機能は以下の通りです：
+
+- Qiita記事のデータモデル
+- リアクション数の集計結果のデータモデル
+- リアクション数の分析結果のデータモデル
+- CSVファイルとの相互変換機能
+"""
+
 from datetime import datetime
 from typing import Dict
 
@@ -6,6 +17,18 @@ from pydantic_settings import SettingsConfigDict
 
 
 class QiitaArticle(BaseModel):
+    """Qiitaの記事を表すデータモデル
+
+    Attributes:
+        id (str): 記事のID
+        likes_count (int): いいね数
+        stocks_count (int): ストック数
+        title (str): 記事のタイトル
+        url (HttpUrl): 記事のURL
+        created_at (datetime): 作成日時
+        updated_at (datetime): 更新日時
+    """
+
     id: str
     likes_count: int
     stocks_count: int
@@ -16,11 +39,17 @@ class QiitaArticle(BaseModel):
 
 
 class ReactionCounts(BaseModel):
-    """リアクションの集計結果を表す型
+    """リアクションの集計結果を表すデータモデル
+
     各フィールドは以下の形式の辞書:
     {
         リアクション数: そのリアクション数を持つ記事の数
     }
+
+    Attributes:
+        likes (Dict[int, int]): いいね数の頻度分布
+        stocks (Dict[int, int]): ストック数の頻度分布
+        reactions (Dict[int, int]): 総リアクション数の頻度分布
     """
 
     likes: Dict[int, int]  # いいね数 -> そのいいね数を持つ記事の数
@@ -31,7 +60,14 @@ class ReactionCounts(BaseModel):
         """集計結果をCSVファイルに保存する
 
         Args:
-            output_file: 出力先のCSVファイルパス
+            output_file (str): 出力先のCSVファイルパス
+
+        Note:
+            CSVファイルは以下の列を含みます：
+            - value: リアクション数
+            - likes: そのいいね数を持つ記事の数
+            - stocks: そのストック数を持つ記事の数
+            - reactions: その総リアクション数を持つ記事の数
         """
         import csv
 
@@ -64,10 +100,18 @@ class ReactionCounts(BaseModel):
         """CSVファイルから集計結果を読み込む
 
         Args:
-            input_file: 入力元のCSVファイルパス
+            input_file (str): 入力元のCSVファイルパス
 
         Returns:
             ReactionCounts: 読み込んだ集計結果
+
+        Note:
+            - 0の値を持つキーは除外されます
+            - CSVファイルは以下の列を含む必要があります：
+              - value: リアクション数
+              - likes: そのいいね数を持つ記事の数
+              - stocks: そのストック数を持つ記事の数
+              - reactions: その総リアクション数を持つ記事の数
         """
         import csv
 
@@ -95,6 +139,19 @@ class ReactionCounts(BaseModel):
 
 
 class ReactionStats(BaseModel):
+    """リアクション数の分析結果を表すデータモデル
+
+    Attributes:
+        total_articles (int): 分析対象の記事総数
+        median (float): リアクション数の中央値
+        mean (float): リアクション数の平均値
+        top_10_threshold (float): 上位10%の閾値
+        top_10_mean (float): 上位10%の平均値
+        top_10_median (float): 上位10%の中央値
+        top_10_count (int): 上位10%の記事数
+        n_more_or_ratio (dict[int, float]): n以上のリアクションがついた記事の割合
+    """
+
     total_articles: int
     median: float
     mean: float
