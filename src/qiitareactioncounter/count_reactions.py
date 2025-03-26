@@ -17,7 +17,7 @@ class Settings(BaseSettings):
         default="1900-01-01", description="開始日（YYYY-MM-DD形式）"
     )
     end_date: str = Field(default="2099-12-31", description="終了日（YYYY-MM-DD形式）")
-    username: str | None = Field(default=None, description="ユーザー名（オプション）")
+    userid: str | None = Field(default=None, description="ユーザーID（オプション）")
     sample_size: int = Field(
         default=1000, description="サンプル件数（デフォルト1000件）"
     )
@@ -69,18 +69,18 @@ def find_valid_last_page(query, headers):
     return last_valid_page
 
 
-def create_query(start_date: str, end_date: str, username: str | None = None) -> str:
+def create_query(start_date: str, end_date: str, userid: str | None = None) -> str:
     """クエリ文字列を生成する"""
     query = f"created:>={start_date} created:<={end_date}"
-    if username:
-        query = f"{query} user:{username}"
+    if userid:
+        query = f"{query} user:{userid}"
     return query
 
 
 def collect_articles(
     start_date: str,
     end_date: str,
-    username: str | None,
+    userid: str | None,
     sample_size: int,
     pages_to_fetch: list[int],
     headers: dict,
@@ -88,7 +88,7 @@ def collect_articles(
     """指定されたページから記事を収集する"""
     collected_articles = []
     per_page = 100
-    query = create_query(start_date, end_date, username)
+    query = create_query(start_date, end_date, userid)
 
     for page in pages_to_fetch:
         articles = get_articles(query, page, per_page, headers)
@@ -151,7 +151,7 @@ def run_count_reactions(settings: Settings | None = None, **kwargs) -> str:
 
     headers = {"Authorization": f"Bearer {settings.qiita_token}"}
 
-    query = create_query(settings.start_date, settings.end_date, settings.username)
+    query = create_query(settings.start_date, settings.end_date, settings.userid)
     print("Query:", query)
 
     # 実際に記事が存在する最後のページを見つける
@@ -179,7 +179,7 @@ def run_count_reactions(settings: Settings | None = None, **kwargs) -> str:
     collected_articles = collect_articles(
         settings.start_date,
         settings.end_date,
-        settings.username,
+        settings.userid,
         settings.sample_size,
         pages_to_fetch,
         headers,
