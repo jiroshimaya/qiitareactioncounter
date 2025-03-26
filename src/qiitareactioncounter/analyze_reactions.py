@@ -1,3 +1,13 @@
+"""Qiitaのリアクション数を分析するモジュール
+
+このモジュールは、Qiitaのリアクション数の集計結果を分析し、統計情報を生成する機能を提供します。
+主な機能は以下の通りです：
+
+- リアクション数の基本統計量の計算（平均値、中央値など）
+- 上位10%の記事の分析
+- n以上のリアクションがついた記事の割合の計算
+"""
+
 from typing import List
 
 import numpy as np
@@ -9,6 +19,13 @@ from qiitareactioncounter.schemas import ReactionStats
 
 
 class Settings(BaseSettings):
+    """リアクション数分析の設定を管理するクラス
+
+    Attributes:
+        filepath (str): 分析対象のCSVファイルのパス
+        n_values (List[int]): n以上のリアクションがついた記事の割合を計算するn値のリスト
+    """
+
     filepath: str = Field(..., description="分析対象のCSVファイルのパス")
     n_values: List[int] = Field(
         default=[1, 2, 3],
@@ -25,6 +42,23 @@ class Settings(BaseSettings):
 
 
 def analyze_reactions(file_path: str, n_values: List[int]) -> ReactionStats:
+    """リアクション数の集計結果を分析し、統計情報を生成する
+
+    Args:
+        file_path (str): 集計結果のCSVファイルのパス
+        n_values (List[int]): n以上のリアクションがついた記事の割合を計算するn値のリスト
+
+    Returns:
+        ReactionStats: 分析結果の統計情報
+
+    Note:
+        以下の統計情報を計算します：
+        - 全記事数
+        - リアクション数の中央値
+        - リアクション数の平均値
+        - 上位10%の閾値、平均値、中央値
+        - 各n値について、n以上のリアクションがついた記事の割合
+    """
     df = pd.read_csv(file_path)
 
     # リアクション数の分布を計算
@@ -63,7 +97,20 @@ def analyze_reactions(file_path: str, n_values: List[int]) -> ReactionStats:
     )
 
 
-def main():
+def main() -> None:
+    """メイン関数
+
+    コマンドライン引数から設定を読み込み、リアクション数の分析を実行します。
+    環境変数や.envファイルから設定を読み込むこともできます。
+
+    Note:
+        分析結果は以下の情報を出力します：
+        - 全記事数
+        - リアクション数の中央値
+        - リアクション数の平均値
+        - 上位10%の閾値、平均値、中央値
+        - 各n値について、n以上のリアクションがついた記事の割合
+    """
     # 設定の読み込み
     settings = Settings()  # type: ignore
 
