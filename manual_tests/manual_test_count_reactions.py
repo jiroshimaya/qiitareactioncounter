@@ -10,6 +10,7 @@ from qiitareactioncounter.count_reactions import (
     Settings,
     collect_articles,
     get_authenticated_user,
+    get_user_oldest_article_date,
     run_count_reactions,
 )
 from qiitareactioncounter.schemas import ReactionCounts
@@ -164,3 +165,32 @@ def test_collect_articles_sample_size():
 
     # サンプル数の検証
     assert len(user_articles) == user_sample_size
+
+
+def test_get_user_oldest_article_date():
+    """Qiitaの最も古い投稿の日付を取得するテスト
+    ユーザーIDを指定した場合、最も古い投稿の日付が正しく取得できることを確認します。
+
+    実行例:
+        QIITA_USERID=shimajiroxyz uv run pytest manual_tests/manual_test_count_reactions.py -v -s -k test_get_user_oldest_article_date
+    """
+    # 環境変数からQiitaトークンを取得
+    qiita_token = os.getenv("QIITA_TOKEN")
+    if not qiita_token:
+        pytest.skip("環境変数 QIITA_TOKEN が設定されていません")
+
+    # ユーザーIDを環境変数から取得
+    userid = os.getenv("QIITA_USERID", "Qiita")
+
+    # テスト実行
+    settings = Settings()  # type: ignore
+    headers = {"Authorization": f"Bearer {settings.qiita_token}"}
+    oldest_date = get_user_oldest_article_date(headers, userid)
+
+    # 結果の表示
+    print(f"\n取得した最も古い投稿の日付: {oldest_date}")
+
+    # 検証
+    assert oldest_date is not None, "日付が取得できていること"
+    assert isinstance(oldest_date, str), "日付が文字列であること"
+    assert len(oldest_date.split("-")) == 3, "日付がYYYY-MM-DD形式であること"
