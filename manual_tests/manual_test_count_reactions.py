@@ -1,6 +1,6 @@
 import os
 import sys
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 
 import pytest
@@ -8,46 +8,11 @@ import requests
 
 from qiitareactioncounter.count_reactions import (
     Settings,
-    create_query,
-    get_articles,
+    collect_articles,
     get_authenticated_user,
     run_count_reactions,
 )
 from qiitareactioncounter.schemas import ReactionCounts
-
-
-def test_get_articles():
-    """get_articlesのマニュアルテスト
-    実際のAPIを呼び出して、記事の取得が正しく行われることを確認します。
-    """
-    # テスト用の設定
-    qiita_token = os.getenv("QIITA_TOKEN")
-    if not qiita_token:
-        pytest.skip("環境変数 QIITA_TOKEN が設定されていません")
-
-    end_date = datetime.now().strftime("%Y-%m-%d")
-    start_date = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")  # 過去7日間
-    query = create_query(start_date, end_date)
-    headers = {"Authorization": f"Bearer {qiita_token}"}
-
-    # 記事の取得
-    print(f"クエリ: {query}")
-    articles = get_articles(query=query, page=1, per_page=10, headers=headers)
-
-    # 結果の表示
-    print(f"\n取得した記事数: {len(articles)}")
-    for article in articles:
-        print("\n--- 記事情報 ---")
-        print(f"タイトル: {article.title}")
-        print(f"いいね数: {article.likes_count}")
-        print(f"ストック数: {article.stocks_count}")
-        print(f"URL: {article.url}")
-        print(f"作成日時: {article.created_at}")
-        print(f"更新日時: {article.updated_at}")
-
-    # 基本的な検証
-    assert len(articles) > 0, "記事が取得できていません"
-    assert len(articles) <= 10, "取得件数が想定より多いです"
 
 
 def test_run_count_reactions():
@@ -112,3 +77,90 @@ def test_get_authenticated_user():
 
     # 検証
     assert userid == qiita_userid, "取得したユーザーIDが環境変数と一致しません"
+
+
+def test_collect_articles_sample_size():
+    """collect_articles関数のサンプルサイズ適用をテストする
+
+    このテストでは、collect_articles関数が指定されたサンプルサイズを正しく適用するかを
+    以下のケースで検証します：
+
+    1. サンプルサイズが少ない場合（5件）
+    2. サンプルサイズが多い場合（100件）
+    3. 特定ユーザーを指定した場合
+
+    実行例:
+        uv run pytest manual_tests/manual_test_count_reactions.py -v -k test_collect_articles_sample_size
+    """
+    # テスト用の設定
+    qiita_token = os.getenv("QIITA_TOKEN")
+    if not qiita_token:
+        pytest.skip("環境変数 QIITA_TOKEN が設定されていません")
+
+    headers = {"Authorization": f"Bearer {qiita_token}"}
+    end_date = datetime.now().strftime("%Y-%m-%d")
+    start_date = "2020-01-01"  # 十分に過去の日付
+
+    print("\n=== collect_articles関数のサンプルサイズテスト ===")
+
+    # 1. 少ないサンプルサイズのテスト（5件）
+    print("\n--- 少ないサンプルサイズのテスト（5件） ---")
+    small_sample_size = 5
+
+    small_articles = collect_articles(
+        start_date=start_date,
+        end_date=end_date,
+        userid=None,  # 全ユーザー
+        sample_size=small_sample_size,
+        pages_to_fetch=[1],  # 十分なページ数
+        headers=headers,
+    )
+
+    print(f"指定したサンプルサイズ: {small_sample_size}")
+    print(f"実際に取得した記事数: {len(small_articles)}")
+
+    # サンプル数の検証
+    assert len(small_articles) == small_sample_size
+
+    if len(small_articles) > 0:
+        print("\n最初の記事のタイトル:", small_articles[0].title)
+
+    # 2. 大きいサンプルサイズのテスト（100件）
+    print("\n--- 大きいサンプルサイズのテスト（100件） ---")
+    large_sample_size = 99
+
+    large_articles = collect_articles(
+        start_date=start_date,
+        end_date=end_date,
+        userid=None,  # 全ユーザー
+        sample_size=large_sample_size,
+        pages_to_fetch=[1],  # 十分なページ数
+        headers=headers,
+    )
+
+    print(f"指定したサンプルサイズ: {large_sample_size}")
+    print(f"実際に取得した記事数: {len(large_articles)}")
+
+    # Qiita全体からの取得のためlarge_sample_sizeだけ取得できるはず
+    assert len(large_articles) == large_sample_size
+
+    # 3. 特定ユーザーに対するテスト
+    print("\n--- 特定ユーザーに対するテスト ---")
+    user_sample_size = 10
+    test_userid = "Qiita"  # 公式アカウント
+
+    user_articles = collect_articles(
+        start_date=start_date,
+        end_date=end_date,
+        userid=test_userid,
+        sample_size=user_sample_size,
+        pages_to_fetch=[1],  # 十分なページ数
+        headers=headers,
+    )
+
+    print(f"指定したユーザー: {test_userid}")
+    print(f"指定したサンプルサイズ: {user_sample_size}")
+    print(f"実際に取得した記事数: {len(user_articles)}")
+
+    # サンプル数の検証
+    assert len(user_articles) == user_sample_size
