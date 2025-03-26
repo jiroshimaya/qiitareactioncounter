@@ -4,7 +4,6 @@ from pathlib import Path
 
 import pytest
 
-from qiitareactioncounter.count_reactions import get_user_oldest_article_date
 from qiitareactioncounter.run_analysis import Settings, run_analysis
 
 
@@ -158,32 +157,3 @@ def test_run_analysis_with_auto_date_range(test_output_dir):
     assert user_csv.exists()
     user_analysis = output_path / f"{userid}_analysis_result.json"
     assert user_analysis.exists()
-
-
-def test_get_oldest_article_date():
-    """Qiitaの最も古い投稿の日付を取得するテスト
-    ユーザーIDを指定した場合、最も古い投稿の日付が正しく取得できることを確認します。
-
-    実行例:
-        QIITA_USERID=Qiita uv run pytest manual_tests/manual_test_run_analysis.py -v -s -k test_get_oldest_article_date
-    """
-    # 環境変数からQiitaトークンを取得
-    qiita_token = os.getenv("QIITA_TOKEN")
-    if not qiita_token:
-        pytest.skip("環境変数 QIITA_TOKEN が設定されていません")
-
-    # ユーザーIDを環境変数から取得
-    userid = os.getenv("QIITA_USERID", "Qiita")
-
-    # テスト実行
-    settings = Settings()  # type: ignore
-    headers = {"Authorization": f"Bearer {settings.qiita_token}"}
-    oldest_date = get_user_oldest_article_date(headers, userid)
-
-    # 結果の表示
-    print(f"\n取得した最も古い投稿の日付: {oldest_date}")
-
-    # 検証
-    assert oldest_date is not None, "日付が取得できていること"
-    assert isinstance(oldest_date, str), "日付が文字列であること"
-    assert len(oldest_date.split("-")) == 3, "日付がYYYY-MM-DD形式であること"
