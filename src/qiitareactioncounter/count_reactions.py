@@ -11,6 +11,7 @@
 #!/usr/bin/env python3
 import random
 import sys
+from datetime import datetime
 
 import requests
 from pydantic import Field
@@ -96,15 +97,16 @@ def find_valid_last_page(query: str, headers: dict[str, str]) -> int:
     left = 1
     right = 100  # Qiita APIの制限（100ページ）
     last_valid_page = 1
+    per_page = 100
 
     # まず1ページ目で記事が取得できるか確認
-    articles = get_articles(query, 1, 100, headers)
+    articles = get_articles(query, 1, per_page, headers)
     if not articles:
         return 0
 
     while left <= right:
         mid = (left + right) // 2
-        articles = get_articles(query, mid, 100, headers)
+        articles = get_articles(query, mid, per_page, headers)
 
         if articles:  # 記事が存在する場合
             last_valid_page = mid
@@ -229,6 +231,54 @@ def get_authenticated_user(headers: dict[str, str]) -> str:
     if r.status_code != 200:
         raise Exception(f"認証に失敗しました: {r.text}")
     return r.json()["id"]
+
+
+def get_user_oldest_article_date(headers: dict[str, str], userid: str) -> str:
+    """ユーザーの最も古い投稿の日付を取得する
+
+    Args:
+        headers (dict[str, str]): APIリクエストヘッダー
+        userid (str): ユーザーID
+
+    Returns:
+        str: 最も古い投稿の日付（YYYY-MM-DD形式）
+
+    Raises:
+        Exception: ユーザーの記事を取得できない場合
+    """
+    # まず1ページ目を取得して総記事数を確認
+    params = {"page": 1, "per_page": 100}
+    r = requests.get(
+        f"https://qiita.com/api/v2/users/{userid}/items", params=params, headers=headers
+    )
+    if r.status_code != 200:
+        raise Exception(f"ユーザーの記事を取得できませんでした: {r.text}")
+
+    # 総記事数から最後のページを計算
+    total_count = int(r.headers.get("total-count", 0))
+    if total_count == 0:
+        raise Exception("ユーザーの記事が見つかりませんでした")
+
+    last_page = (total_count - 1) // 100 + 1
+
+    # 最後のページから記事を取得（作成日時でソート）
+    params = {"page": last_page, "per_page": 100, "sort": "created_at"}
+    r = requests.get(
+        f"https://qiita.com/api/v2/users/{userid}/items", params=params, headers=headers
+    )
+    if r.status_code != 200:
+        raise Exception(f"ユーザーの記事を取得できませんでした: {r.text}")
+
+    articles = r.json()
+    if not articles:
+        raise Exception("ユーザーの記事が見つかりませんでした")
+
+    # 最も古い投稿の日付を取得
+    oldest_date = datetime.fromisoformat(
+        articles[-1]["created_at"].replace("Z", "+00:00")
+    )
+
+    return oldest_date.strftime("%Y-%m-%d")
 
 
 def run_count_reactions(settings: Settings | None = None, **kwargs) -> str:
