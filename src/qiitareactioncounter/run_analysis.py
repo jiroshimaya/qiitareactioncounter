@@ -5,7 +5,10 @@ from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from qiitareactioncounter.analyze_reactions import analyze_reactions
-from qiitareactioncounter.count_reactions import run_count_reactions
+from qiitareactioncounter.count_reactions import (
+    get_authenticated_user,
+    run_count_reactions,
+)
 from qiitareactioncounter.schemas import ReactionStats
 
 
@@ -82,22 +85,29 @@ def run_analysis(settings: Settings) -> None:
     all_users_analysis = output_path / "all_users_analysis_result.json"
     run_analyze_reactions(str(all_users_csv), str(all_users_analysis))
 
-    # 特定ユーザーの集計と分析（useridが指定されている場合）
-    if settings.userid:
-        print(f"\n{settings.userid}のリアクション数を集計します...")
-        user_csv = output_path / f"{settings.userid}_reactions.csv"
+    # 特定ユーザーの集計と分析（useridが指定されている場合、またはトークンがある場合は認証ユーザー）
+    userid = settings.userid
+    if userid is None and settings.qiita_token:
+        # トークンがあり、useridが指定されていない場合は認証ユーザーの情報を取得
+        headers = {"Authorization": f"Bearer {settings.qiita_token}"}
+        userid = get_authenticated_user(headers)
+        print(f"\n認証ユーザーのIDを取得しました: {userid}")
+
+    if userid:
+        print(f"\n{userid}のリアクション数を集計します...")
+        user_csv = output_path / f"{userid}_reactions.csv"
         run_count_reactions(
             start_date=settings.start_date,
             end_date=settings.end_date,
             qiita_token=settings.qiita_token,
-            userid=settings.userid,
+            userid=userid,
             sample_size=settings.sample_size,
             output_file=str(user_csv),
         )
-        print(f"{settings.userid}の集計結果を保存しました: {user_csv}")
+        print(f"{userid}の集計結果を保存しました: {user_csv}")
 
-        print(f"\n{settings.userid}の集計結果を分析します...")
-        user_analysis = output_path / f"{settings.userid}_analysis_result.json"
+        print(f"\n{userid}の集計結果を分析します...")
+        user_analysis = output_path / f"{userid}_analysis_result.json"
         run_analyze_reactions(str(user_csv), str(user_analysis))
 
 
