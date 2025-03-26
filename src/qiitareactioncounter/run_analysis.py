@@ -1,3 +1,14 @@
+"""Qiitaのリアクション数を集計・分析するモジュール
+
+このモジュールは、Qiitaの記事に対するリアクション数を集計し、分析を行う機能を提供します。
+主な機能は以下の通りです：
+
+- 全ユーザーのリアクション数集計
+- 特定ユーザーのリアクション数集計
+- リアクション数の統計分析（平均値、中央値、上位10%の分析など）
+- 分析結果のJSONファイル出力
+"""
+
 import json
 from pathlib import Path
 
@@ -13,6 +24,17 @@ from qiitareactioncounter.schemas import ReactionStats
 
 
 class Settings(BaseSettings):
+    """Qiitaのリアクション数集計・分析の設定を管理するクラス
+
+    Attributes:
+        qiita_token (str): Qiitaのアクセストークン
+        start_date (str): 集計開始日（YYYY-MM-DD形式）
+        end_date (str): 集計終了日（YYYY-MM-DD形式）
+        userid (str | None): 集計対象のユーザーID（オプション）
+        sample_size (int): 集計する記事のサンプル数
+        output_dir (str): 出力ディレクトリのパス
+    """
+
     qiita_token: str = Field(..., description="Qiitaのアクセストークン")
     start_date: str = Field(
         default="1900-01-01", description="開始日（YYYY-MM-DD形式）"
@@ -36,7 +58,23 @@ class Settings(BaseSettings):
 
 
 def run_analyze_reactions(csv_path: str, output_path: str) -> ReactionStats:
-    """集計結果を分析する"""
+    """リアクション数の集計結果を分析し、統計情報を出力する
+
+    Args:
+        csv_path (str): 集計結果のCSVファイルのパス
+        output_path (str): 分析結果を保存するJSONファイルのパス
+
+    Returns:
+        ReactionStats: 分析結果の統計情報
+
+    Note:
+        分析結果は以下の情報を含みます：
+        - 全記事数
+        - リアクション数の中央値
+        - リアクション数の平均値
+        - 上位10%の閾値、平均値、中央値
+        - 各リアクション数以上の記事の割合
+    """
     stats = analyze_reactions(csv_path, [1, 2, 3])
 
     # 分析結果をJSONファイルに保存
@@ -62,7 +100,13 @@ def run_analysis(settings: Settings) -> None:
     """リアクション数の集計と分析を実行する
 
     Args:
-        settings: 設定
+        settings (Settings): 集計・分析の設定
+
+    Note:
+        この関数は以下の処理を実行します：
+        1. 全ユーザーのリアクション数集計と分析
+        2. 特定ユーザー（指定された場合）または認証ユーザーのリアクション数集計と分析
+        3. 結果をCSVファイルとJSONファイルに保存
     """
     # 出力ディレクトリの作成
     output_path = Path(settings.output_dir)
@@ -111,7 +155,12 @@ def run_analysis(settings: Settings) -> None:
         run_analyze_reactions(str(user_csv), str(user_analysis))
 
 
-def main():
+def main() -> None:
+    """メイン関数
+
+    コマンドライン引数から設定を読み込み、リアクション数の集計と分析を実行します。
+    環境変数や.envファイルから設定を読み込むこともできます。
+    """
     # 設定の読み込み
     settings = Settings()  # type: ignore
 
