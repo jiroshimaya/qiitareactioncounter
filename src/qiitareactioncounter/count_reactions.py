@@ -143,6 +143,8 @@ def run_count_reactions(settings: Settings | None = None, **kwargs) -> str:
     elif kwargs:
         # 既存の設定をkwargsで上書き
         settings = Settings(**{**settings.model_dump(), **kwargs})
+    if "userid" in kwargs:
+        settings.userid = kwargs["userid"]
 
     """リアクション数を集計し、生成されたCSVファイルのパスを返す"""
     if not settings.qiita_token:
