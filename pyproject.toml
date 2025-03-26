@@ -24,3 +24,4 @@ source = "vcs"
 dev = [
     "pytest>=8.3.5",
 ]
+
