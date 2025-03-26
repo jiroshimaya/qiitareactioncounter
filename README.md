@@ -32,7 +32,7 @@ cd qiitareactioncounter
    cp .env_sample .env
    ```
    `.env`ファイルを開き、`QIITA_TOKEN`にあなたのQiitaアクセストークンを設定してください。
-   アクセストークンはQiitaの[設定ページ](https://qiita.com/settings/applications)から取得できます。
+   アクセストークンはQiitaの[設定ページ](https://qiita.com/settings/applications)から取得できます。ContentsおよびPull Requestへのread権限を与えてください。
 
 2. プロジェクトのルートディレクトリで以下のコマンドを実行します：
    ```bash
