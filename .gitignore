@@ -1,6 +1,12 @@
 .DS_Store
 .specstory
 /investigations
+/docs/*
+!/docs/source/
+/docs/source/*
+!/docs/source/index.rst
+!/docs/source/conf.py
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
