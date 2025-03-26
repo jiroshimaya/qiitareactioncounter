@@ -10,6 +10,7 @@
 """
 
 import json
+from datetime import datetime
 from pathlib import Path
 
 from pydantic import Field
@@ -18,6 +19,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from qiitareactioncounter.analyze_reactions import analyze_reactions
 from qiitareactioncounter.count_reactions import (
     get_authenticated_user,
+    get_user_oldest_article_date,
     run_count_reactions,
 )
 from qiitareactioncounter.schemas import ReactionStats
@@ -28,18 +30,21 @@ class Settings(BaseSettings):
 
     Attributes:
         qiita_token (str): Qiitaのアクセストークン
-        start_date (str): 集計開始日（YYYY-MM-DD形式）
-        end_date (str): 集計終了日（YYYY-MM-DD形式）
+        start_date (str | None): 集計開始日（YYYY-MM-DD形式）。指定しない場合はユーザーの最も古い投稿の日付
+        end_date (str | None): 集計終了日（YYYY-MM-DD形式）。指定しない場合は現在の日付
         userid (str | None): 集計対象のユーザーID（オプション）
         sample_size (int): 集計する記事のサンプル数
         output_dir (str): 出力ディレクトリのパス
     """
 
     qiita_token: str = Field(..., description="Qiitaのアクセストークン")
-    start_date: str = Field(
-        default="1900-01-01", description="開始日（YYYY-MM-DD形式）"
+    start_date: str | None = Field(
+        default=None,
+        description="開始日（YYYY-MM-DD形式）。指定しない場合はユーザーの最も古い投稿の日付",
     )
-    end_date: str = Field(default="2099-12-31", description="終了日（YYYY-MM-DD形式）")
+    end_date: str | None = Field(
+        default=None, description="終了日（YYYY-MM-DD形式）。指定しない場合は現在の日付"
+    )
     userid: str | None = Field(default=None, description="ユーザーID（オプション）")
     sample_size: int = Field(
         default=1000, description="サンプル件数（デフォルト1000件）"
@@ -112,12 +117,31 @@ def run_analysis(settings: Settings) -> None:
     output_path = Path(settings.output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
 
+    # 特定ユーザーの集計と分析（useridが指定されている場合、またはトークンがある場合は認証ユーザー）
+    userid = settings.userid
+    if userid is None and settings.qiita_token:
+        # トークンがあり、useridが指定されていない場合は認証ユーザーの情報を取得
+        headers = {"Authorization": f"Bearer {settings.qiita_token}"}
+        userid = get_authenticated_user(headers)
+        print(f"\n認証ユーザーのIDを取得しました: {userid}")
+
+    # 日付範囲が指定されていない場合、ユーザーの投稿履歴から取得
+    start_date = settings.start_date
+    if userid and start_date is None:
+        headers = {"Authorization": f"Bearer {settings.qiita_token}"}
+        start_date = get_user_oldest_article_date(headers, userid)
+        print(f"\n開始日をユーザーの最も古い投稿の日付に設定しました: {start_date}")
+
+    end_date = settings.end_date
+    if end_date is None:
+        end_date = datetime.now().strftime("%Y-%m-%d")
+
     # 全ユーザーの集計と分析
     print("全ユーザーのリアクション数を集計します...")
     all_users_csv = output_path / "all_users_reactions.csv"
     run_count_reactions(
-        start_date=settings.start_date,
-        end_date=settings.end_date,
+        start_date=start_date,
+        end_date=end_date,
         qiita_token=settings.qiita_token,
         userid=None,
         sample_size=settings.sample_size,
@@ -129,20 +153,12 @@ def run_analysis(settings: Settings) -> None:
     all_users_analysis = output_path / "all_users_analysis_result.json"
     run_analyze_reactions(str(all_users_csv), str(all_users_analysis))
 
-    # 特定ユーザーの集計と分析（useridが指定されている場合、またはトークンがある場合は認証ユーザー）
-    userid = settings.userid
-    if userid is None and settings.qiita_token:
-        # トークンがあり、useridが指定されていない場合は認証ユーザーの情報を取得
-        headers = {"Authorization": f"Bearer {settings.qiita_token}"}
-        userid = get_authenticated_user(headers)
-        print(f"\n認証ユーザーのIDを取得しました: {userid}")
-
     if userid:
         print(f"\n{userid}のリアクション数を集計します...")
         user_csv = output_path / f"{userid}_reactions.csv"
         run_count_reactions(
-            start_date=settings.start_date,
-            end_date=settings.end_date,
+            start_date=start_date or "1900-01-01",
+            end_date=end_date or "2099-12-31",
             qiita_token=settings.qiita_token,
             userid=userid,
             sample_size=settings.sample_size,

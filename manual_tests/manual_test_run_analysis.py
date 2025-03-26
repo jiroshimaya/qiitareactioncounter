@@ -113,3 +113,47 @@ def test_run_analysis(test_output_dir):
     assert (output_path / f"{user_id}_analysis_result.json").exists(), (
         "認証ユーザーの分析結果が生成されていること"
     )
+
+
+def test_run_analysis_with_auto_date_range(test_output_dir):
+    """日付範囲の自動設定をテストする
+    ユーザーIDを指定した場合、日付範囲が指定されていないと自動的に設定されることを確認します。
+
+    実行例:
+        QIITA_USERID=Qiita uv run pytest manual_tests/manual_test_run_analysis.py -v -k test_run_analysis_with_auto_date_range
+    """
+    # 環境変数からQiitaトークンを取得
+    qiita_token = os.getenv("QIITA_TOKEN")
+    if not qiita_token:
+        pytest.skip("環境変数 QIITA_TOKEN が設定されていません")
+
+    # ユーザーIDを環境変数から取得
+    userid = os.getenv("QIITA_USERID", "Qiita")
+
+    # コマンドライン引数の設定（日付範囲を指定しない）
+    sys.argv = [
+        "script.py",
+        f"--userid={userid}",
+        f"--output_dir={test_output_dir}",
+        "--sample_size=99",
+    ]
+
+    # テスト実行
+    settings = Settings()  # type: ignore
+    run_analysis(settings)
+
+    # 出力ディレクトリの確認
+    output_path = Path(test_output_dir)
+    assert output_path.exists()
+
+    # 全ユーザーの集計結果の確認
+    all_users_csv = output_path / "all_users_reactions.csv"
+    assert all_users_csv.exists()
+    all_users_analysis = output_path / "all_users_analysis_result.json"
+    assert all_users_analysis.exists()
+
+    # 特定ユーザーの集計結果の確認
+    user_csv = output_path / f"{userid}_reactions.csv"
+    assert user_csv.exists()
+    user_analysis = output_path / f"{userid}_analysis_result.json"
+    assert user_analysis.exists()
