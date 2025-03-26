@@ -1,3 +1,13 @@
+"""Qiitaの記事からリアクション数を集計するモジュール
+
+このモジュールは、Qiitaの記事からリアクション数（いいね数、ストック数）を集計する機能を提供します。
+主な機能は以下の通りです：
+
+- Qiita APIを使用した記事の取得
+- いいね数、ストック数、総リアクション数の集計
+- 集計結果のCSVファイル出力
+"""
+
 #!/usr/bin/env python3
 import random
 import sys
@@ -12,6 +22,17 @@ API_URL = "https://qiita.com/api/v2/items"
 
 
 class Settings(BaseSettings):
+    """Qiitaのリアクション数集計の設定を管理するクラス
+
+    Attributes:
+        qiita_token (str): Qiitaのアクセストークン
+        start_date (str): 集計開始日（YYYY-MM-DD形式）
+        end_date (str): 集計終了日（YYYY-MM-DD形式）
+        userid (str | None): 集計対象のユーザーID（オプション）
+        sample_size (int): 集計する記事のサンプル数
+        output_file (str): 出力ファイル名
+    """
+
     qiita_token: str = Field(..., description="Qiitaのアクセストークン")
     start_date: str = Field(
         default="1900-01-01", description="開始日（YYYY-MM-DD形式）"
@@ -37,6 +58,20 @@ class Settings(BaseSettings):
 def get_articles(
     query: str, page: int, per_page: int, headers: dict[str, str]
 ) -> list[QiitaArticle]:
+    """Qiita APIから記事を取得する
+
+    Args:
+        query (str): 検索クエリ
+        page (int): 取得するページ番号
+        per_page (int): 1ページあたりの記事数
+        headers (dict[str, str]): APIリクエストヘッダー
+
+    Returns:
+        list[QiitaArticle]: 取得した記事のリスト
+
+    Note:
+        APIのレスポンスステータスが200以外の場合は空のリストを返します。
+    """
     params = {"page": page, "per_page": per_page, "query": query}
     r: requests.Response = requests.get(API_URL, params=params, headers=headers)
     if r.status_code != 200:
@@ -45,8 +80,19 @@ def get_articles(
     return [QiitaArticle.model_validate(article) for article in r.json()]
 
 
-def find_valid_last_page(query, headers):
-    """二分探索で実際に記事が存在する最後のページを見つける"""
+def find_valid_last_page(query: str, headers: dict[str, str]) -> int:
+    """二分探索で実際に記事が存在する最後のページを見つける
+
+    Args:
+        query (str): 検索クエリ
+        headers (dict[str, str]): APIリクエストヘッダー
+
+    Returns:
+        int: 最後の有効なページ番号。記事が見つからない場合は0を返します。
+
+    Note:
+        Qiita APIの制限により、最大100ページまで検索します。
+    """
     left = 1
     right = 100  # Qiita APIの制限（100ページ）
     last_valid_page = 1
@@ -70,7 +116,16 @@ def find_valid_last_page(query, headers):
 
 
 def create_query(start_date: str, end_date: str, userid: str | None = None) -> str:
-    """クエリ文字列を生成する"""
+    """Qiita APIの検索クエリを生成する
+
+    Args:
+        start_date (str): 開始日（YYYY-MM-DD形式）
+        end_date (str): 終了日（YYYY-MM-DD形式）
+        userid (str | None): ユーザーID（オプション）
+
+    Returns:
+        str: 生成された検索クエリ
+    """
     query = f"created:>={start_date} created:<={end_date}"
     if userid:
         query = f"{query} user:{userid}"
@@ -83,9 +138,26 @@ def collect_articles(
     userid: str | None,
     sample_size: int,
     pages_to_fetch: list[int],
-    headers: dict,
+    headers: dict[str, str],
 ) -> list[QiitaArticle]:
-    """指定されたページから記事を収集する"""
+    """指定されたページから記事を収集する
+
+    Args:
+        start_date (str): 開始日（YYYY-MM-DD形式）
+        end_date (str): 終了日（YYYY-MM-DD形式）
+        userid (str | None): ユーザーID（オプション）
+        sample_size (int): 必要な記事数
+        pages_to_fetch (list[int]): 取得するページ番号のリスト
+        headers (dict[str, str]): APIリクエストヘッダー
+
+    Returns:
+        list[QiitaArticle]: 収集した記事のリスト
+
+    Note:
+        - 指定されたサンプルサイズに達した場合は、それ以降のページの取得を停止します
+        - 収集した記事数がサンプルサイズを超える場合は、ランダムにサンプリングします
+        - 記事が見つからない場合は、エラーメッセージを表示して終了します
+    """
     collected_articles = []
     per_page = 100
     query = create_query(start_date, end_date, userid)
@@ -108,7 +180,20 @@ def collect_articles(
 
 
 def count_reactions(articles: list[QiitaArticle]) -> ReactionCounts:
-    """リアクションの集計を行う"""
+    """リアクションの集計を行う
+
+    Args:
+        articles (list[QiitaArticle]): 集計対象の記事リスト
+
+    Returns:
+        ReactionCounts: 集計結果
+
+    Note:
+        以下の3つの集計を行います：
+        - いいね数の頻度分布
+        - ストック数の頻度分布
+        - 総リアクション数（いいね数 + ストック数）の頻度分布
+    """
     counts = {"likes": {}, "stocks": {}, "reactions": {}}
 
     for article in articles:
@@ -127,7 +212,17 @@ def count_reactions(articles: list[QiitaArticle]) -> ReactionCounts:
 
 
 def get_authenticated_user(headers: dict[str, str]) -> str:
-    """認証されているユーザーのIDを取得する"""
+    """認証されているユーザーのIDを取得する
+
+    Args:
+        headers (dict[str, str]): APIリクエストヘッダー
+
+    Returns:
+        str: 認証ユーザーのID
+
+    Raises:
+        Exception: 認証に失敗した場合
+    """
     r: requests.Response = requests.get(
         "https://qiita.com/api/v2/authenticated_user", headers=headers
     )
@@ -137,6 +232,22 @@ def get_authenticated_user(headers: dict[str, str]) -> str:
 
 
 def run_count_reactions(settings: Settings | None = None, **kwargs) -> str:
+    """リアクション数を集計し、CSVファイルに出力する
+
+    Args:
+        settings (Settings | None): 集計設定。Noneの場合はkwargsから設定を生成
+        **kwargs: 設定の上書き用のキーワード引数
+
+    Returns:
+        str: 生成されたCSVファイルのパス
+
+    Note:
+        以下の処理を実行します：
+        1. 設定の読み込みと検証
+        2. 記事の取得（ランダムサンプリング）
+        3. リアクション数の集計
+        4. 結果のCSVファイル出力
+    """
     # 設定の読み込み
     if settings is None:
         settings = Settings(**kwargs)
@@ -146,7 +257,6 @@ def run_count_reactions(settings: Settings | None = None, **kwargs) -> str:
     if "userid" in kwargs:
         settings.userid = kwargs["userid"]
 
-    """リアクション数を集計し、生成されたCSVファイルのパスを返す"""
     if not settings.qiita_token:
         print("エラー: 環境変数 QIITA_TOKEN が設定されていません")
         sys.exit(1)
@@ -193,7 +303,12 @@ def run_count_reactions(settings: Settings | None = None, **kwargs) -> str:
     return settings.output_file
 
 
-def main():
+def main() -> None:
+    """メイン関数
+
+    コマンドライン引数から設定を読み込み、リアクション数の集計を実行します。
+    環境変数や.envファイルから設定を読み込むこともできます。
+    """
     settings = Settings()  # type: ignore
     run_count_reactions(settings)
 
